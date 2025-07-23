@@ -42,14 +42,15 @@ fn is_path_valid(path: &str) -> Result<PathBuf, String> {
         .map(|entry| entry.path())
         .any(|p| p.is_file() && p.extension().map_or(false, |ext| ext == "wproj"));
 
-    if has_wproj {
-        Ok(path)
-    } else {
-        Err(format!(
+    if !has_wproj {
+        return Err(format!(
             "No '.wproj' files found in directory '{}'",
             path.display()
-        ))
+        ));
     }
+
+    // 返回绝对路径
+    fs::canonicalize(&path).map_err(|e| format!("Failed to resolve absolute path: {}", e))
 }
 
 fn get_ref_wav(path: &str) -> Vec<String> {
