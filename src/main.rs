@@ -9,20 +9,22 @@ use std::{collections::HashSet, fs, path::PathBuf};
     name = "wclean",
     author = "xmimu <1101588023@qq.com>",
     version = "0.1.0",
-    about = "清理Originals目录下多余的wav文件。"
+    about = "清理 Wwise Originals 目录下未引用的 .wav 文件"
 )]
 struct Cli {
-    /// Wwise工程目录（包含 .wproj 文件）
+    /// Wwise 工程目录（包含 .wproj 文件）
     #[arg(value_parser = is_path_valid)]
     path: PathBuf,
 
-    /// 输出未引用的 wav 到指定文件
+    /// 将未引用的 wav 输出到文件
     #[arg(short = 'o', long = "output")]
     output_file: Option<PathBuf>,
 
-    /// 从指定文件删除 wav（或解析后立即删除未引用）
-    #[arg(short = 'd', long = "delete")]
-    delete_file: Option<PathBuf>,
+    /// 删除未引用 wav，可选文件参数
+    /// - `-d`：解析后删除
+    /// - `-d file.txt`：从文件删除
+    #[arg(short = 'd', long = "delete", num_args = 0..=1, value_name = "FILE")]
+    delete_file: Option<Option<PathBuf>>,
 }
 
 fn is_path_valid(path: &str) -> Result<PathBuf, String> {
@@ -169,40 +171,44 @@ fn read_list_from_file(path: &PathBuf) -> Vec<String> {
     }
 }
 
-
 fn main() {
     let args = Cli::parse();
     let wwise_path = args.path.to_str().unwrap();
 
-    // 删除模式（仅指定了 -d）
-    if args.output_file.is_none() && args.delete_file.is_some() {
-        let list = read_list_from_file(&args.delete_file.as_ref().unwrap());
-        println!("从文件删除 {} 个 wav...", list.len());
-        delete_files(&list);
-        return;
-    }
+    match &args.delete_file {
+        // 模式：wclean path -d 或 -o xxx -d
+        Some(None) => {
+            let ref_wavs = get_ref_wav(wwise_path);
+            println!("已引用 wav 数量: {}", ref_wavs.len());
 
-    // 正常模式：解析并找出未引用
-    let ref_wav_paths = get_ref_wav(wwise_path);
-    println!("已引用 wav 数量: {}", ref_wav_paths.len());
+            let unused_wavs = get_unused_wav(ref_wavs, wwise_path);
+            println!("未引用 wav 数量: {}", unused_wavs.len());
 
-    let unused_wavs = get_unused_wav(ref_wav_paths, wwise_path);
-    println!("未引用 wav 数量: {}", unused_wavs.len());
+            if let Some(out_file) = &args.output_file {
+                write_unused_list(&unused_wavs, out_file);
+            }
 
-    // 如果指定 -o，写入文件
-    if let Some(out_file) = &args.output_file {
-        write_unused_list(&unused_wavs, out_file);
-    }
+            delete_files(&unused_wavs);
+        }
 
-    // 如果指定 -d，同时执行删除
-    if let Some(del_file) = &args.delete_file {
-        let list = if args.output_file.is_some() {
-            read_list_from_file(del_file)
-        } else {
-            unused_wavs.clone()
-        };
-        println!("删除 {} 个未引用的 wav...", list.len());
-        delete_files(&list);
+        // 模式：wclean path -d file.txt
+        Some(Some(file_path)) => {
+            let list = read_list_from_file(file_path);
+            println!("从文件删除 {} 个 wav...", list.len());
+            delete_files(&list);
+        }
+
+        // 模式：默认展示或保存
+        None => {
+            let ref_wavs = get_ref_wav(wwise_path);
+            println!("已引用 wav 数量: {}", ref_wavs.len());
+
+            let unused_wavs = get_unused_wav(ref_wavs, wwise_path);
+            println!("未引用 wav 数量: {}", unused_wavs.len());
+
+            if let Some(out_file) = &args.output_file {
+                write_unused_list(&unused_wavs, out_file);
+            }
+        }
     }
 }
-

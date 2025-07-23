@@ -14,6 +14,8 @@
 
 [下载地址](https://github.com/xmimu/wclean/releases)
 
+
+## 📌 示例用法
 ### 参数说明
 
 | 参数                      | 说明                                         |
@@ -22,21 +24,64 @@
 | `-o`, `--output <file>` | 可选。将未引用的 `.wav` 路径导出到指定文件                  |
 | `-d`, `--delete <file>` | 可选。删除指定文件中列出的 `.wav`，或在未指定 `-o` 时直接删除未引用文件 |
 
-### 示例用法
-
-#### 仅分析并导出未引用的文件列表：
+### 1️⃣ **默认模式**：扫描并展示数量
 
 ```bash
-wclean E:/WWise/MyProject -o unused.txt
+wclean D:\WwiseProject
 ```
 
-#### 删除未引用的文件（不导出列表，直接删除）：
+* 扫描 `.wwu` 文件引用的 `.wav`，并展示已引用与未引用的数量
+* **不导出、不删除**
+
+---
+
+### 2️⃣ **导出未引用列表到文件**
 
 ```bash
-wclean E:/WWise/MyProject -d _
+wclean D:\WwiseProject -o unused.txt
 ```
 
-> 此时未引用的 `.wav` 会立即被删除。
+* 自动扫描 `.wwu` 引用
+* 导出未被引用的 `.wav` 文件路径列表到 `unused.txt`
+* **不删除**
+
+---
+
+### 3️⃣ **扫描并删除未引用的 `.wav` 文件**
+
+```bash
+wclean D:\WwiseProject -d
+```
+
+* 自动扫描 `.wwu` 引用
+* 删除未被引用的 `.wav` 文件
+* **不导出**
+
+---
+
+### 4️⃣ **扫描、导出并删除未引用的 `.wav` 文件**
+
+```bash
+wclean D:\WwiseProject -o unused.txt -d
+```
+
+* 自动扫描 `.wwu` 引用
+* 导出未引用列表
+* 删除未被引用的 `.wav`
+
+---
+
+### 5️⃣ **从文件中删除列表指定的 `.wav`**
+
+```bash
+wclean D:\WwiseProject -d unused.txt
+```
+
+* 不重新扫描
+* 从指定列表文件中读取 `.wav` 路径并删除
+* 通常用于上一次导出的 `unused.txt`
+
+---
 
 #### 先导出，后手动审核再删除：
 
